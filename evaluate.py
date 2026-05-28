@@ -25,7 +25,7 @@ from sklearn.metrics import f1_score, accuracy_score
 import torch
 
 from data_pipeline import get_dataloaders
-from model import GraphoVisionResNet
+from model import GraphoVisionHybrid
 
 
 # ─────────────────────────────────────────────
@@ -98,7 +98,7 @@ def plot_training_curves(history_path: str = str(HIST_JSON), save_path: str = No
 
 def print_per_label_metrics(model, test_loader, device=DEVICE, save_path: str = None):
     """
-    test_loader 전체에 대해 8개 레이블 각각의
+    test_loader 전체에 대해 5개 레이블 각각의
     Accuracy, F1-Score를 출력하고 그래프로 저장한다.
     threshold=0.5(기본)와 per-label 최적 threshold를 함께 비교한다.
     """
@@ -107,9 +107,10 @@ def print_per_label_metrics(model, test_loader, device=DEVICE, save_path: str = 
     all_labels = []
 
     with torch.no_grad():
-        for imgs, labels in test_loader:
-            imgs = imgs.to(device)
-            logits = model(imgs)
+        for batch in test_loader:
+            imgs, feats, labels = batch
+            imgs, feats = imgs.to(device), feats.to(device)
+            logits = model(imgs, feats)
             probs = torch.sigmoid(logits).cpu()
             all_probs.append(probs)
             all_labels.append(labels)
@@ -243,9 +244,11 @@ def plot_radar_batch(model, test_loader, n_samples: int = 4, device=DEVICE):
     all_imgs, all_preds, all_labels = [], [], []
 
     with torch.no_grad():
-        for imgs, labels in test_loader:
+        for batch in test_loader:
+            imgs, feats, labels = batch
             imgs_dev = imgs.to(device)
-            logits = model(imgs_dev)
+            feats_dev = feats.to(device)
+            logits = model(imgs_dev, feats_dev)
             probs  = torch.sigmoid(logits).cpu().numpy()
             all_imgs.append(imgs.numpy())
             all_preds.append(probs)
@@ -317,13 +320,13 @@ def main():
         print("[ERROR] best_model.pth 없음 — train.py를 먼저 실행하세요")
         return
 
-    model = GraphoVisionResNet(num_labels=5).to(DEVICE)
+    model = GraphoVisionHybrid(num_labels=5).to(DEVICE)
     model.load_state_dict(torch.load(MODEL_PTH, map_location=DEVICE))
     print(f"모델 로드 완료: {MODEL_PTH}")
 
-    # ③ 데이터 로드 (test set만 필요)
+    # ③ 데이터 로드 (test set, 수작업 특징 포함)
     _, _, test_loader = get_dataloaders(
-        LINES_DIR, XML_DIR, LABEL_TXT, batch_size=BATCH_SIZE
+        LINES_DIR, XML_DIR, LABEL_TXT, batch_size=BATCH_SIZE, use_features=True
     )
 
     # ④ 8개 지표별 Accuracy / F1
@@ -331,9 +334,9 @@ def main():
 
     # ⑤ 레이더 차트 — 단일 샘플 예시
     model.eval()
-    imgs, labels = next(iter(test_loader))
+    imgs, feats, labels = next(iter(test_loader))
     with torch.no_grad():
-        probs = torch.sigmoid(model(imgs.to(DEVICE))).cpu().numpy()
+        probs = torch.sigmoid(model(imgs.to(DEVICE), feats.to(DEVICE))).cpu().numpy()
 
     plot_radar_chart(
         ground_truth=labels[0].numpy(),

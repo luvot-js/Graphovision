@@ -3,11 +3,15 @@ data_pipeline.py
 ----------------
 label_list.txt 파싱 → XML 메타데이터 조인 → lines/ 이미지 경로 매핑
 → PyTorch Dataset / DataLoader 구축
+
+use_features=True 시 수작업 특징(5d)도 함께 반환.
+특징은 feature_cache.pkl에 캐싱해 매 epoch 재추출을 방지.
 """
 
 import os
 import glob
 import json
+import pickle
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from collections import defaultdict
@@ -19,6 +23,8 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from torchvision import transforms
+
+from feature_extractor import extract_all as extract_handwriting_features
 
 
 # 사용할 레이블 인덱스 (0~7 중 선택한 5개) — HBPA label_list.txt 기준
@@ -174,25 +180,81 @@ def build_sample_list(
 
 
 # ─────────────────────────────────────────────
-# 4. PyTorch Dataset
+# 4. 특징 캐시 로드/저장
+# ─────────────────────────────────────────────
+
+FEATURE_CACHE_PATH = Path(__file__).parent / "feature_cache.pkl"
+
+
+def load_feature_cache() -> dict:
+    if FEATURE_CACHE_PATH.exists():
+        with open(FEATURE_CACHE_PATH, "rb") as f:
+            return pickle.load(f)
+    return {}
+
+
+def save_feature_cache(cache: dict):
+    with open(FEATURE_CACHE_PATH, "wb") as f:
+        pickle.dump(cache, f)
+
+
+def build_feature_cache(samples: list) -> dict:
+    """
+    샘플 목록의 모든 이미지에서 수작업 특징을 추출해 캐시 딕셔너리를 반환.
+    이미 캐시된 항목은 재추출하지 않음.
+    """
+    cache = load_feature_cache()
+    missing = [s for s in samples if str(s["image_path"]) not in cache]
+
+    if missing:
+        print(f"[build_feature_cache] 특징 추출 중: {len(missing)}개 (캐시 히트: {len(cache)}개)")
+        for i, s in enumerate(missing):
+            key = str(s["image_path"])
+            try:
+                img = Image.open(s["image_path"]).convert("L")
+                cache[key] = extract_handwriting_features(img)
+            except Exception:
+                cache[key] = np.full(5, 0.5, dtype=np.float32)
+
+            if (i + 1) % 1000 == 0:
+                print(f"  {i + 1}/{len(missing)} 완료...")
+                save_feature_cache(cache)
+
+        save_feature_cache(cache)
+        print(f"[build_feature_cache] 완료. 총 {len(cache)}개 캐시 저장됨")
+
+    return cache
+
+
+# ─────────────────────────────────────────────
+# 5. PyTorch Dataset
 # ─────────────────────────────────────────────
 
 class HandwritingDataset(Dataset):
     """
     IAM 필기 줄 이미지를 로드하고 전처리하여 반환하는 Dataset.
 
+    use_features=True 시 수작업 특징(5d)도 함께 반환:
+      반환값: (img_tensor, feature_tensor, label_tensor)
+      반환값: (img_tensor, label_tensor)  — use_features=False
+
     전처리:
       1. 그레이스케일 로드
       2. 세로(H)를 224px로 리사이즈 (가로비율 유지)
       3. 가로 방향에서 224×224 RandomCrop
       4. ToTensor → Normalize(0.5, 0.5)
+
+    수작업 특징은 리사이즈 후 crop 전 이미지에서 추출 (원본 비율 보존).
     """
 
     TARGET_H = 224
     CROP_SIZE = 224
 
-    def __init__(self, samples: list, augment: bool = True):
+    def __init__(self, samples: list, augment: bool = True,
+                 use_features: bool = True, feature_cache: dict = None):
         self.samples = samples
+        self.use_features = use_features
+        self.feature_cache = feature_cache or {}
 
         if augment:
             self.transform = transforms.Compose([
@@ -214,7 +276,7 @@ class HandwritingDataset(Dataset):
 
     def __getitem__(self, idx: int):
         item = self.samples[idx]
-        img = Image.open(item["image_path"]).convert("L")  # 그레이스케일
+        img = Image.open(item["image_path"]).convert("L")
 
         # 세로를 224px로 리사이즈 (비율 유지)
         w, h = img.size
@@ -229,6 +291,17 @@ class HandwritingDataset(Dataset):
 
         img_tensor = self.transform(img)
         labels = torch.tensor(item["labels"], dtype=torch.float32)
+
+        if self.use_features:
+            key = str(item["image_path"])
+            feat = self.feature_cache.get(key)
+            if feat is None:
+                feat = extract_handwriting_features(
+                    Image.open(item["image_path"]).convert("L")
+                )
+            feature_tensor = torch.tensor(feat, dtype=torch.float32)
+            return img_tensor, feature_tensor, labels
+
         return img_tensor, labels
 
 
@@ -271,12 +344,14 @@ def get_dataloaders(
     num_workers: int = 0,
     seed: int = 42,
     oversample: bool = True,
+    use_features: bool = True,
 ):
     """
     전체 파이프라인을 실행하여 train/val/test DataLoader를 반환한다.
 
     writer 단위로 분리하여 동일 필기자의 이미지가 train/test에 동시에 포함되지 않도록 한다.
-    oversample=True: 희귀 레이블 샘플을 WeightedRandomSampler로 오버샘플링.
+    oversample=True : 희귀 레이블 샘플을 WeightedRandomSampler로 오버샘플링.
+    use_features=True: 수작업 특징(5d)도 함께 반환. 첫 실행 시 feature_cache.pkl 생성.
     """
     label_df = parse_label_list(label_txt)
     writer_form_map = build_writer_form_map(xml_dir)
@@ -301,6 +376,11 @@ def get_dataloaders(
 
     print(f"[get_dataloaders] train: {len(train_samples)}, val: {len(val_samples)}, test: {len(test_samples)}")
 
+    # 수작업 특징 캐시 (전체 샘플 한 번에 추출)
+    feature_cache = {}
+    if use_features:
+        feature_cache = build_feature_cache(all_samples)
+
     if oversample:
         sample_weights = compute_sample_weights(train_samples)
         sampler = WeightedRandomSampler(
@@ -310,16 +390,19 @@ def get_dataloaders(
         )
         print(f"[get_dataloaders] WeightedRandomSampler 적용 (oversample=True)")
         train_loader = DataLoader(
-            HandwritingDataset(train_samples, augment=True),
+            HandwritingDataset(train_samples, augment=True,
+                               use_features=use_features, feature_cache=feature_cache),
             batch_size=batch_size, sampler=sampler, num_workers=num_workers,
         )
     else:
         train_loader = DataLoader(
-            HandwritingDataset(train_samples, augment=True),
+            HandwritingDataset(train_samples, augment=True,
+                               use_features=use_features, feature_cache=feature_cache),
             batch_size=batch_size, shuffle=True, num_workers=num_workers,
         )
     val_loader = DataLoader(
-        HandwritingDataset(val_samples, augment=False),
+        HandwritingDataset(val_samples, augment=False,
+                           use_features=use_features, feature_cache=feature_cache),
         batch_size=batch_size, shuffle=False, num_workers=num_workers,
     )
     test_loader = DataLoader(
@@ -350,11 +433,13 @@ if __name__ == "__main__":
         ratio = labels_all[:, i].mean()
         print(f"  label_{i}: {ratio:.3f} ({labels_all[:, i].sum():.0f} / {len(samples)})")
 
-    # DataLoader 샘플 확인
+    # DataLoader 샘플 확인 (use_features=True)
     train_loader, val_loader, test_loader = get_dataloaders(
-        LINES_DIR, XML_DIR, LABEL_TXT, batch_size=8
+        LINES_DIR, XML_DIR, LABEL_TXT, batch_size=8, use_features=True
     )
-    imgs, lbls = next(iter(train_loader))
-    print(f"\n배치 이미지 shape: {imgs.shape}")   # (8, 1, 224, 224)
-    print(f"배치 레이블 shape: {lbls.shape}")    # (8, 8)
+    imgs, feats, lbls = next(iter(train_loader))
+    print(f"\n배치 이미지 shape  : {imgs.shape}")    # (8, 1, 224, 224)
+    print(f"배치 특징 shape    : {feats.shape}")    # (8, 5)
+    print(f"배치 레이블 shape  : {lbls.shape}")     # (8, 5)
+    print(f"특징 샘플 (첫 행)  : {feats[0].tolist()}")
     print("파이프라인 검증 완료!")

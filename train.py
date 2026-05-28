@@ -24,7 +24,7 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from data_pipeline import get_dataloaders
-from model import GraphoVisionResNet
+from model import GraphoVisionHybrid
 
 
 # ─────────────────────────────────────────────
@@ -54,11 +54,12 @@ def train_one_epoch(model, loader, criterion, optimizer, device):
     model.train()
     total_loss = 0.0
 
-    for imgs, labels in loader:
-        imgs, labels = imgs.to(device), labels.to(device)
+    for batch in loader:
+        imgs, feats, labels = batch
+        imgs, feats, labels = imgs.to(device), feats.to(device), labels.to(device)
 
         optimizer.zero_grad()
-        logits = model(imgs)
+        logits = model(imgs, feats)
         loss = criterion(logits, labels)
         loss.backward()
         optimizer.step()
@@ -79,9 +80,10 @@ def evaluate(model, loader, criterion, device, threshold: float = 0.5):
     all_labels = []
 
     with torch.no_grad():
-        for imgs, labels in loader:
-            imgs, labels = imgs.to(device), labels.to(device)
-            logits = model(imgs)
+        for batch in loader:
+            imgs, feats, labels = batch
+            imgs, feats, labels = imgs.to(device), feats.to(device), labels.to(device)
+            logits = model(imgs, feats)
             loss = criterion(logits, labels)
             total_loss += loss.item() * imgs.size(0)
 
@@ -89,11 +91,10 @@ def evaluate(model, loader, criterion, device, threshold: float = 0.5):
             all_preds.append(preds.cpu())
             all_labels.append(labels.cpu())
 
-    all_preds  = torch.cat(all_preds,  dim=0).numpy()   # (N, 8)
-    all_labels = torch.cat(all_labels, dim=0).numpy()   # (N, 8)
+    all_preds  = torch.cat(all_preds,  dim=0).numpy()   # (N, 5)
+    all_labels = torch.cat(all_labels, dim=0).numpy()   # (N, 5)
 
-    # 레이블별 정확도
-    per_label_acc = (all_preds == all_labels).mean(axis=0)   # (8,)
+    per_label_acc = (all_preds == all_labels).mean(axis=0)
     mean_acc = per_label_acc.mean()
 
     return total_loss / len(loader.dataset), mean_acc, per_label_acc
@@ -163,14 +164,14 @@ def compute_alpha_gamma(train_loader, device, min_a: float = 0.5, max_a: float =
 def main():
     print(f"Device: {DEVICE}")
 
-    # 데이터 로드
+    # 데이터 로드 (수작업 특징 포함)
     train_loader, val_loader, _ = get_dataloaders(
-        LINES_DIR, XML_DIR, LABEL_TXT, batch_size=BATCH_SIZE
+        LINES_DIR, XML_DIR, LABEL_TXT, batch_size=BATCH_SIZE, use_features=True
     )
 
-    # ── 1단계: 백본 고정, fc head만 학습 ──────────────────────────
-    print(f"\n[1단계] 백본 고정 — fc head만 학습 ({FREEZE_EPOCHS} epoch)")
-    model = GraphoVisionResNet(num_labels=5, dropout=DROPOUT, freeze_backbone=True).to(DEVICE)
+    # ── 1단계: 백본 고정, feature MLP + classifier만 학습 ────────
+    print(f"\n[1단계] 백본 고정 — feature MLP + classifier 학습 ({FREEZE_EPOCHS} epoch)")
+    model = GraphoVisionHybrid(num_labels=5, dropout=DROPOUT, freeze_backbone=True).to(DEVICE)
 
     alpha, gamma = compute_alpha_gamma(train_loader, DEVICE)
     criterion    = FocalLoss(alpha=alpha, gamma=gamma)
