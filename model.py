@@ -17,12 +17,14 @@ import torch.nn as nn
 from torchvision.models import resnet18, ResNet18_Weights
 
 
-def _make_resnet_backbone(dropout: float, freeze_backbone: bool, num_labels: int = None):
+def _make_resnet_backbone(dropout: float, freeze_backbone: bool, num_labels: int = None, pretrained: bool = True):
     """
     공통 ResNet18 백본 생성 헬퍼.
     num_labels=None 이면 fc를 Identity로 두어 512d 특징만 출력.
+    pretrained=False 이면 ImageNet 가중치 다운로드 없이 구조만 생성 (inference 전용).
     """
-    backbone = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
+    weights = ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
+    backbone = resnet18(weights=weights)
 
     # conv1: 3채널 → 1채널 (pretrained 가중치 평균으로 초기화)
     old_conv1 = backbone.conv1
@@ -94,11 +96,11 @@ class GraphoVisionHybrid(nn.Module):
     FEATURE_DIM = 5
     HIDDEN_DIM  = 32
 
-    def __init__(self, num_labels: int = 5, dropout: float = 0.3, freeze_backbone: bool = False):
+    def __init__(self, num_labels: int = 5, dropout: float = 0.3, freeze_backbone: bool = False, pretrained: bool = True):
         super().__init__()
 
         # ── Branch 1: CNN ──────────────────────────────────────────
-        self.cnn = _make_resnet_backbone(dropout=0.0, freeze_backbone=freeze_backbone)
+        self.cnn = _make_resnet_backbone(dropout=0.0, freeze_backbone=freeze_backbone, pretrained=pretrained)
         # Identity fc → 512d 출력
 
         # ── Branch 2: Feature MLP ──────────────────────────────────

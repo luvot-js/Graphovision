@@ -80,7 +80,7 @@ def load_model() -> GraphoVisionHybrid:
     if _model is None:
         if not MODEL_PATH.exists():
             raise FileNotFoundError(f"best_model.pth 없음: {MODEL_PATH}")
-        m = GraphoVisionHybrid(num_labels=5).to(DEVICE)
+        m = GraphoVisionHybrid(num_labels=5, pretrained=False).to(DEVICE)
         m.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
         m.eval()
         _model = m

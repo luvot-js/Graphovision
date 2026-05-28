@@ -1,21 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
-import { Share2, Link as LinkIcon, Download, RefreshCw, Users } from "lucide-react";
+import { useNavigate, useParams } from "react-router";
+import { Share2, Link as LinkIcon, RefreshCw, Users } from "lucide-react";
 import { TopNav } from "../components/ui/TopNav";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
 import { motion } from "motion/react";
+import { analyzeApi } from "../../lib/api";
 
 const TRAITS = ['정서 안정성', '정신력/의지력', '겸손', '개인적 조화', '사회적 고립'];
-const mockScores = [0.82, 0.64, 0.71, 0.89, 0.78];
-
-const chartData = TRAITS.map((trait, i) => ({
-  subject: `${trait}_${i}`,
-  name: trait,
-  value: Math.round(mockScores[i] * 100),
-  fullMark: 100
-}));
 
 function getColorForScore(score: number) {
   if (score < 0.3) return "bg-radar-b";
@@ -25,23 +18,64 @@ function getColorForScore(score: number) {
 
 export function Result() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const [scores, setScores] = useState<number[]>([]);
+  const [report, setReport] = useState("");
   const [reportText, setReportText] = useState("");
-  const mockName = "지훈"; // Mock data - 실제로는 라우팅에서 전달받아야 함
-  const fullReport = "당신의 필체에서는 강한 의지력과 높은 정서적 안정성이 느껴집니다. 글씨의 기울기와 필압을 보았을 때 목표를 향해 흔들림 없이 나아가는 성향을 지니셨네요. 동시에 유연한 사고방식을 가져 새로운 상황에서도 잘 적응하는 편입니다.";
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!id) return;
+    analyzeApi.getResult(id)
+      .then((res) => {
+        setScores(res.scores);
+        setReport(res.report || "");
+      })
+      .catch((err) => setError(err.message || "결과를 불러오지 못했습니다."))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  // 타이핑 효과
+  useEffect(() => {
+    if (!report) return;
     let i = 0;
+    setReportText("");
     const interval = setInterval(() => {
-      setReportText(fullReport.slice(0, i));
+      setReportText(report.slice(0, i));
       i++;
-      if (i > fullReport.length) clearInterval(interval);
-    }, 30);
+      if (i > report.length) clearInterval(interval);
+    }, 20);
     return () => clearInterval(interval);
-  }, []);
+  }, [report]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-cream-white">
+        <p className="text-warm-brown">결과 불러오는 중...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-cream-white px-5">
+        <p className="mb-4 text-red-500">{error}</p>
+        <Button onClick={() => navigate("/test")}>다시 검사하기</Button>
+      </div>
+    );
+  }
+
+  const chartData = TRAITS.map((trait, i) => ({
+    subject: `${trait}_${i}`,
+    name: trait,
+    value: Math.round((scores[i] ?? 0) * 100),
+    fullMark: 100,
+  }));
 
   return (
     <div className="min-h-screen bg-cream-white pb-10">
-      <TopNav title={`${mockName}님의 결과`} />
+      <TopNav title="분석 결과" />
 
       <div className="px-5 pt-6 space-y-8">
         <motion.div
@@ -74,7 +108,7 @@ export function Result() {
           <h3 className="mb-4 text-[18px] font-semibold text-charcoal">지표별 점수</h3>
           <div className="space-y-3">
             {TRAITS.map((trait, i) => {
-              const score = mockScores[i];
+              const score = scores[i] ?? 0;
               return (
                 <div key={`trait-${i}`} className="flex items-center text-[13px]">
                   <span className="w-32 text-warm-brown">{trait}</span>
@@ -95,25 +129,25 @@ export function Result() {
           </div>
         </div>
 
-        <div>
-          <h3 className="mb-4 text-[18px] font-semibold text-charcoal">AI 분석 리포트</h3>
-          <Card className="bg-white/80 p-5">
-            <p className="text-[15px] leading-relaxed text-charcoal">
-              {reportText}
-              <span className="animate-pulse inline-block w-1.5 h-4 ml-1 bg-indigo align-middle" />
-            </p>
-          </Card>
-        </div>
+        {report && (
+          <div>
+            <h3 className="mb-4 text-[18px] font-semibold text-charcoal">AI 분석 리포트</h3>
+            <Card className="bg-white/80 p-5">
+              <p className="text-[15px] leading-relaxed text-charcoal whitespace-pre-line">
+                {reportText}
+                <span className="animate-pulse inline-block w-1.5 h-4 ml-1 bg-indigo align-middle" />
+              </p>
+            </Card>
+          </div>
+        )}
 
         <div className="flex justify-center gap-3">
-          <button className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FAE100] text-black shadow-sm transition hover:opacity-80">
-            <Share2 size={20} />
-          </button>
-          <button className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-charcoal shadow-sm transition hover:bg-gray-50">
+          <button
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-charcoal shadow-sm transition hover:bg-gray-50"
+            onClick={() => navigator.clipboard.writeText(window.location.href)}
+            title="링크 복사"
+          >
             <LinkIcon size={20} />
-          </button>
-          <button className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-charcoal shadow-sm transition hover:bg-gray-50">
-            <Download size={20} />
           </button>
         </div>
 
