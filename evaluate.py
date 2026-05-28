@@ -8,7 +8,7 @@ evaluate.py
 
 출력 파일:
   - training_curves.png     : Train/Val Loss 학습 곡선
-  - per_label_metrics.png   : 8개 지표별 Accuracy/F1 막대 그래프
+  - per_label_metrics.png   : 5개 지표별 Accuracy/F1 막대 그래프
   - radar_chart_sample.png  : Ground Truth vs AI Prediction 레이더 차트 (예시)
 """
 
@@ -25,6 +25,7 @@ from sklearn.metrics import f1_score, accuracy_score
 import torch
 
 from data_pipeline import get_dataloaders
+# [수정됨] ResNet 대신 Hybrid 모델을 불러옵니다.
 from model import GraphoVisionHybrid
 
 
@@ -93,20 +94,16 @@ def plot_training_curves(history_path: str = str(HIST_JSON), save_path: str = No
 
 
 # ─────────────────────────────────────────────
-# 2. 8개 지표별 Accuracy / F1 막대 그래프
+# 2. 5개 지표별 Accuracy / F1 막대 그래프
 # ─────────────────────────────────────────────
 
 def print_per_label_metrics(model, test_loader, device=DEVICE, save_path: str = None):
-    """
-    test_loader 전체에 대해 5개 레이블 각각의
-    Accuracy, F1-Score를 출력하고 그래프로 저장한다.
-    threshold=0.5(기본)와 per-label 최적 threshold를 함께 비교한다.
-    """
     model.eval()
     all_probs  = []
     all_labels = []
 
     with torch.no_grad():
+        # [수정됨] 하이브리드 모델이므로 imgs, feats, labels 3개를 받습니다.
         for batch in test_loader:
             imgs, feats, labels = batch
             imgs, feats = imgs.to(device), feats.to(device)
@@ -115,8 +112,8 @@ def print_per_label_metrics(model, test_loader, device=DEVICE, save_path: str = 
             all_probs.append(probs)
             all_labels.append(labels)
 
-    probs_np  = torch.cat(all_probs,  dim=0).numpy()    # (N, 8)
-    labels_np = torch.cat(all_labels, dim=0).numpy()    # (N, 8)
+    probs_np  = torch.cat(all_probs,  dim=0).numpy()    # (N, 5)
+    labels_np = torch.cat(all_labels, dim=0).numpy()    # (N, 5)
 
     short_names = ["Emot.", "MentalE.", "Modesty", "Harmony", "SocIso."]
 
@@ -190,15 +187,6 @@ def plot_radar_chart(
     title:        str = "GraphoVision — Personality Prediction",
     save_path:    str = None,
 ):
-    """
-    8각 레이더 차트: Ground Truth(파란 실선) vs AI Prediction(빨간 점선)
-
-    Args:
-        ground_truth: (8,) 실제 레이블 (0 or 1)
-        predicted:    (8,) AI 예측 확률 (0.0 ~ 1.0)
-        title:        차트 제목
-        save_path:    저장 경로 (None이면 radar_chart_sample.png)
-    """
     N = len(TRAIT_NAMES)
     angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
     angles += angles[:1]   # 닫힌 다각형
@@ -236,18 +224,14 @@ def plot_radar_chart(
 
 
 def plot_radar_batch(model, test_loader, n_samples: int = 4, device=DEVICE):
-    """
-    테스트셋에서 n_samples개를 뽑아 레이더 차트를 한 figure에 그린다.
-    (발표 PPT에 여러 사례를 한 장으로 보여주기 위함)
-    """
     model.eval()
     all_imgs, all_preds, all_labels = [], [], []
 
     with torch.no_grad():
+        # [수정됨] 하이브리드 모델이므로 imgs, feats, labels 3개를 받습니다.
         for batch in test_loader:
             imgs, feats, labels = batch
-            imgs_dev = imgs.to(device)
-            feats_dev = feats.to(device)
+            imgs_dev, feats_dev = imgs.to(device), feats.to(device)
             logits = model(imgs_dev, feats_dev)
             probs  = torch.sigmoid(logits).cpu().numpy()
             all_imgs.append(imgs.numpy())
@@ -293,7 +277,6 @@ def plot_radar_batch(model, test_loader, n_samples: int = 4, device=DEVICE):
     fig.legend(handles=[gt_patch, pred_patch], loc="lower center",
                ncol=2, fontsize=11, bbox_to_anchor=(0.5, -0.02))
 
-    # 남는 subplot 숨기기
     for j in range(n_samples, len(axes)):
         axes[j].set_visible(False)
 
@@ -320,20 +303,23 @@ def main():
         print("[ERROR] best_model.pth 없음 — train.py를 먼저 실행하세요")
         return
 
+    # [수정됨] GraphoVisionHybrid로 변경
     model = GraphoVisionHybrid(num_labels=5).to(DEVICE)
     model.load_state_dict(torch.load(MODEL_PTH, map_location=DEVICE))
     print(f"모델 로드 완료: {MODEL_PTH}")
 
-    # ③ 데이터 로드 (test set, 수작업 특징 포함)
+    # ③ 데이터 로드 (test set만 필요)
+    # [수정됨] use_features=True 추가
     _, _, test_loader = get_dataloaders(
         LINES_DIR, XML_DIR, LABEL_TXT, batch_size=BATCH_SIZE, use_features=True
     )
 
-    # ④ 8개 지표별 Accuracy / F1
+    # ④ 5개 지표별 Accuracy / F1
     print_per_label_metrics(model, test_loader)
 
     # ⑤ 레이더 차트 — 단일 샘플 예시
     model.eval()
+    # [수정됨] 하이브리드 모델이므로 imgs, feats, labels 3개를 받습니다.
     imgs, feats, labels = next(iter(test_loader))
     with torch.no_grad():
         probs = torch.sigmoid(model(imgs.to(DEVICE), feats.to(DEVICE))).cpu().numpy()
