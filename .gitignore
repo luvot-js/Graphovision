@@ -8,6 +8,8 @@ __pycache__/
 *.pth
 history.json
 graphovision_results.zip
+feature_cache.pkl
+*.png
 claude_read.md
 PPT_스크립트.md
 MODEL_GUIDE.md
