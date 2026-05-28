@@ -1,0 +1,61 @@
+[plugin:vite:react-babel] src/app/pages/Result.tsx: Expecting Unicode escape sequence \uXXXX. (79:43)
+  82 |                       />
+/workspaces/default/code/src/app/pages/Result.tsx:79:43
+77 |                        <motion.div
+78 |                          initial={{ width: 0 }}
+79 |                          animate={{ width: \`\${score * 100}%\` }}
+   |                                             ^
+80 |                          transition={{ duration: 1, delay: i * 0.1 }}
+81 |                          className={\`h-full \${getColorForScore(score)}\`}
+    at toParseError (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parse-error.ts:95:45)
+    at TypeScriptParserMixin.raise (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/tokenizer/index.ts:1503:19)
+    at TypeScriptParserMixin.readWord1 (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/tokenizer/index.ts:1439:16)
+    at TypeScriptParserMixin.readWord (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/tokenizer/index.ts:1465:23)
+    at TypeScriptParserMixin.getTokenFromCode (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/tokenizer/index.ts:1048:14)
+    at TypeScriptParserMixin.getTokenFromCode (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:631:13)
+    at TypeScriptParserMixin.getTokenFromCode (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/typescript/index.ts:4094:13)
+    at TypeScriptParserMixin.nextToken (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/tokenizer/index.ts:278:10)
+    at TypeScriptParserMixin.next (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/tokenizer/index.ts:121:10)
+    at TypeScriptParserMixin.eat (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/tokenizer/index.ts:126:12)
+    at TypeScriptParserMixin.parseObjectProperty (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:2312:14)
+    at TypeScriptParserMixin.parseObjPropValue (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:2378:12)
+    at TypeScriptParserMixin.parseObjPropValue (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/typescript/index.ts:3638:20)
+    at TypeScriptParserMixin.parsePropertyDefinition (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:2218:17)
+    at TypeScriptParserMixin.parseObjectLike (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:2085:21)
+    at TypeScriptParserMixin.parseExprAtom (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:1174:21)
+    at TypeScriptParserMixin.parseExprAtom (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:583:22)
+    at TypeScriptParserMixin.parseExprSubscripts (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:734:23)
+    at TypeScriptParserMixin.parseUpdate (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:713:21)
+    at TypeScriptParserMixin.parseMaybeUnary (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:675:23)
+    at TypeScriptParserMixin.parseMaybeUnary (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/typescript/index.ts:3855:20)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:409:14)
+    at TypeScriptParserMixin.parseExprOps (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:421:23)
+    at TypeScriptParserMixin.parseMaybeConditional (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:376:23)
+    at TypeScriptParserMixin.parseMaybeAssign (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:301:21)
+    at TypeScriptParserMixin.parseMaybeAssign (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/typescript/index.ts:3727:22)
+    at TypeScriptParserMixin.parseExpressionBase (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:226:23)
+    at callback (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:217:39)
+    at TypeScriptParserMixin.allowInAnd (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:3192:12)
+    at TypeScriptParserMixin.parseExpression (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:217:17)
+    at TypeScriptParserMixin.jsxParseExpressionContainer (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:376:33)
+    at TypeScriptParserMixin.jsxParseAttributeValue (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:331:23)
+    at TypeScriptParserMixin.jsxParseAttribute (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:414:43)
+    at TypeScriptParserMixin.jsxParseOpeningElementAfterName (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:440:30)
+    at TypeScriptParserMixin.jsxParseOpeningElementAfterName (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/typescript/index.ts:4171:20)
+    at TypeScriptParserMixin.jsxParseOpeningElementAt (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:430:19)
+    at TypeScriptParserMixin.jsxParseElementAt (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:470:35)
+    at TypeScriptParserMixin.jsxParseElementAt (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:483:34)
+    at TypeScriptParserMixin.jsxParseElementAt (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:483:34)
+    at TypeScriptParserMixin.jsxParseElementAt (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:483:34)
+    at TypeScriptParserMixin.jsxParseElement (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:559:19)
+    at TypeScriptParserMixin.parseExprAtom (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/jsx/index.ts:573:21)
+    at TypeScriptParserMixin.parseExprSubscripts (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:734:23)
+    at TypeScriptParserMixin.parseUpdate (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:713:21)
+    at TypeScriptParserMixin.parseMaybeUnary (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:675:23)
+    at TypeScriptParserMixin.parseMaybeUnary (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/plugins/typescript/index.ts:3855:20)
+    at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:409:14)
+    at TypeScriptParserMixin.parseExprOps (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:421:23)
+    at TypeScriptParserMixin.parseMaybeConditional (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:376:23)
+    at TypeScriptParserMixin.parseMaybeAssign (node_modules/.pnpm/@babel+parser@7.28.4/node_modules/@babel/parser/src/parser/expression.ts:301:21
+Click outside, press Esc key, or fix the code to dismiss.
+You can also disable this overlay by setting server.hmr.overlay to false in vite.config.js.
