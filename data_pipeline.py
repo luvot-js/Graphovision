@@ -21,8 +21,10 @@ from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from torchvision import transforms
 
 
-# 사용할 레이블 인덱스 (0~7 중 F1이 안정적인 5개)
-# 0:Emot. 1:Social 2:Energy 3:Will 4:Imag. 5:Fear 6:Intro. 7:Sensit.
+# 사용할 레이블 인덱스 (0~7 중 선택한 5개) — HBPA label_list.txt 기준
+# 0:Emotional Stability  1:Mental Energy/Willpower  2:Modesty
+# 3:Personal Harmony     4:Lack of Discipline       5:Poor Concentration
+# 6:Non-Communicativeness  7:Social Isolation
 ACTIVE_LABELS = [0, 1, 2, 3, 7]
 NUM_LABELS    = len(ACTIVE_LABELS)   # 5
 
@@ -239,7 +241,7 @@ def compute_sample_weights(samples: list) -> torch.DoubleTensor:
     멀티레이블 오버샘플링용 per-sample 가중치 계산.
 
     각 샘플의 가중치 = 해당 샘플이 가진 양성 레이블 중 가장 희귀한 것의 역빈도.
-    → Imag./Fear/Intro. 같은 희귀 레이블을 포함한 샘플이 더 자주 선택됨.
+    → Lack of Discipline / Non-Communicativeness 같은 희귀 레이블을 포함한 샘플이 더 자주 선택됨.
     음성만 있는 샘플은 가중치 1.0.
     """
     labels_all = np.array([s["labels"] for s in samples])   # (N, 8)

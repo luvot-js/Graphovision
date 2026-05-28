@@ -42,13 +42,14 @@ HIST_JSON = BASE / "history.json"
 DEVICE    = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 32
 
-# 8가지 심리 지표 이름 (HBPA 논문 기반 — 실제 명칭 확인 후 수정)
+# 5가지 심리 지표 이름 — HBPA label_list.txt 실제 매핑 기준
+# ACTIVE_LABELS = [0, 1, 2, 3, 7]
 TRAIT_NAMES = [
     "Emotional\nStability",
-    "Social\nBehavior",
-    "Mental\nEnergy",
-    "Willpower",
-    "Sensitivity",
+    "Mental Energy\n/ Willpower",
+    "Modesty",
+    "Personal\nHarmony",
+    "Social\nIsolation",
 ]
 
 
@@ -78,7 +79,7 @@ def plot_training_curves(history_path: str = str(HIST_JSON), save_path: str = No
     # Validation Accuracy
     axes[1].plot(epochs, history["val_acc"], label="Val Accuracy", color="#4CAF50")
     axes[1].set_xlabel("Epoch")
-    axes[1].set_ylabel("Accuracy (mean over 8 labels)")
+    axes[1].set_ylabel("Accuracy (mean over 5 labels)")
     axes[1].set_title("Validation Accuracy")
     axes[1].set_ylim(0, 1)
     axes[1].legend()
@@ -116,7 +117,7 @@ def print_per_label_metrics(model, test_loader, device=DEVICE, save_path: str = 
     probs_np  = torch.cat(all_probs,  dim=0).numpy()    # (N, 8)
     labels_np = torch.cat(all_labels, dim=0).numpy()    # (N, 8)
 
-    short_names = ["Emot.", "Social", "Energy", "Will", "Sensit."]
+    short_names = ["Emot.", "MentalE.", "Modesty", "Harmony", "SocIso."]
 
     # ── 기본 threshold=0.5 ──────────────────────────────────────────
     print(f"\n{'Label':<20} {'Accuracy':>9} {'F1 (0.5)':>9}")
@@ -155,7 +156,7 @@ def print_per_label_metrics(model, test_loader, device=DEVICE, save_path: str = 
     print(f"\n  {'Mean':<25}  {np.mean(opt_accs):>8.4f}   {np.mean(opt_f1s):>8.4f}")
 
     # ── 막대 그래프 (Accuracy / F1@0.5 / F1@optimal) ────────────────
-    x = np.arange(8)
+    x = np.arange(len(short_names))
     width = 0.25
     fig, ax = plt.subplots(figsize=(14, 5))
     ax.bar(x - width,   accs,    width, label="Accuracy",      color="#42A5F5", alpha=0.85)
@@ -316,7 +317,7 @@ def main():
         print("[ERROR] best_model.pth 없음 — train.py를 먼저 실행하세요")
         return
 
-    model = GraphoVisionResNet().to(DEVICE)
+    model = GraphoVisionResNet(num_labels=5).to(DEVICE)
     model.load_state_dict(torch.load(MODEL_PTH, map_location=DEVICE))
     print(f"모델 로드 완료: {MODEL_PTH}")
 

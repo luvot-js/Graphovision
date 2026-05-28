@@ -7,7 +7,7 @@ import { Button } from "../components/ui/Button";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
 import { motion } from "motion/react";
 
-const TRAITS = ['정서', '사회성', '에너지', '의지력', '감수성'];
+const TRAITS = ['정서 안정성', '정신력/의지력', '겸손', '개인적 조화', '사회적 고립'];
 const mockScores = [0.82, 0.64, 0.71, 0.89, 0.78];
 
 const chartData = TRAITS.map((trait, i) => ({
@@ -77,7 +77,7 @@ export function Result() {
               const score = mockScores[i];
               return (
                 <div key={`trait-${i}`} className="flex items-center text-[13px]">
-                  <span className="w-24 text-warm-brown">{trait}</span>
+                  <span className="w-32 text-warm-brown">{trait}</span>
                   <div className="flex-1 px-2">
                     <div className="h-2 w-full overflow-hidden rounded-full bg-warm-gray/30">
                       <motion.div

@@ -37,12 +37,12 @@ XML_DIR    = str(BASE / "xml")
 LABEL_TXT  = str(BASE / "label_list.txt")
 
 BATCH_SIZE    = 32
-EPOCHS        = 50
+EPOCHS        = 70
 LR_HEAD       = 1e-3     # 1단계: fc head만 학습할 때
-LR_FINETUNE   = 1e-4     # 2단계: 전체 fine-tuning
+LR_FINETUNE   = 5e-5     # 2단계: 전체 fine-tuning (val loss 진동 억제)
 FREEZE_EPOCHS = 10       # 백본을 고정하고 head만 학습하는 epoch 수
 DROPOUT       = 0.3
-PATIENCE      = 10       # Early stopping patience
+PATIENCE      = 15       # Early stopping patience
 DEVICE        = "cuda" if torch.cuda.is_available() else "cpu"
 
 
@@ -105,36 +105,36 @@ def evaluate(model, loader, criterion, device, threshold: float = 0.5):
 
 class FocalLoss(nn.Module):
     """
-    멀티레이블 이진 분류용 Focal Loss.
+    멀티레이블 이진 분류용 Focal Loss (per-label gamma 지원).
 
-    FL(p_t) = -alpha_t * (1 - p_t)^gamma * log(p_t)
+    FL(p_t) = -alpha_t * (1 - p_t)^gamma_t * log(p_t)
 
-    alpha : (num_labels,) 레이블별 양성 클래스 가중치
-            = neg_count / total  → 양성이 희귀할수록 높은 값
-    gamma : focusing 파라미터. 클수록 easy example 억제 효과 강함 (기본 2.0)
+    alpha : (L,) 레이블별 양성 클래스 가중치 = neg_count / total
+    gamma : (L,) 레이블별 focusing 파라미터
+            불균형이 심할수록 높은 gamma → easy example 억제 강화
     """
-    def __init__(self, alpha: torch.Tensor, gamma: float = 2.0):
+    def __init__(self, alpha: torch.Tensor, gamma: torch.Tensor):
         super().__init__()
         self.register_buffer("alpha", alpha)
-        self.gamma = gamma
+        self.register_buffer("gamma", gamma)
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         # logits, targets: (N, L)
-        bce = F.binary_cross_entropy_with_logits(logits, targets, reduction="none")
-        p_t = torch.exp(-bce)                                          # sigmoid(logit)*y + (1-sigmoid)*( 1-y)
+        bce     = F.binary_cross_entropy_with_logits(logits, targets, reduction="none")
+        p_t     = torch.exp(-bce)
         alpha_t = self.alpha * targets + (1 - self.alpha) * (1 - targets)
-        loss = alpha_t * (1 - p_t) ** self.gamma * bce
+        loss    = alpha_t * (1 - p_t) ** self.gamma * bce
         return loss.mean()
 
 
-def compute_alpha(train_loader, device, min_a: float = 0.5, max_a: float = 0.99):
+def compute_alpha_gamma(train_loader, device, min_a: float = 0.5, max_a: float = 0.99):
     """
-    Focal Loss의 per-label alpha 계산.
-    alpha = neg_count / total  (양성이 드물수록 alpha 높음 → 양성에 집중)
+    Focal Loss의 per-label alpha, gamma 계산.
 
-    클램핑 범위 [min_a, max_a]:
-      - 하한(0.5): alpha < 0.5면 음성이 더 희귀한 상황 — 그냥 0.5로 유지
-      - 상한(0.99): 극단적 불균형에서도 수치 안정성 유지
+    alpha = neg_count / total  (양성이 드물수록 높음)
+    gamma = 1.0 + 2.0 * imbalance_ratio  (불균형이 심할수록 높음, 범위 1.0~3.0)
+      imbalance_ratio = 1 - min(pos_rate, neg_rate) / 0.5
+      → 완전 균형(50:50): gamma=1.0 / 완전 불균형: gamma=3.0
     """
     all_labels = []
     for _, labels in train_loader:
@@ -143,10 +143,17 @@ def compute_alpha(train_loader, device, min_a: float = 0.5, max_a: float = 0.99)
 
     total     = all_labels.size(0)
     pos_count = all_labels.sum(dim=0)               # (L,)
-    alpha     = (total - pos_count) / total         # neg_rate per label
-    alpha     = alpha.clamp(min=min_a, max=max_a)
-    print(f"Focal alpha (clamped to [{min_a}, {max_a}]): {alpha.tolist()}")
-    return alpha.to(device)
+    pos_rate  = pos_count / total
+
+    alpha = (total - pos_count) / total
+    alpha = alpha.clamp(min=min_a, max=max_a)
+
+    balance = torch.min(pos_rate, 1 - pos_rate) / 0.5   # 1.0=균형, 0=완전불균형
+    gamma   = (1.0 + 2.0 * (1 - balance)).clamp(1.0, 3.0)
+
+    print(f"Focal alpha : {[round(x,3) for x in alpha.tolist()]}")
+    print(f"Focal gamma : {[round(x,3) for x in gamma.tolist()]}")
+    return alpha.to(device), gamma.to(device)
 
 
 # ─────────────────────────────────────────────
@@ -165,8 +172,8 @@ def main():
     print(f"\n[1단계] 백본 고정 — fc head만 학습 ({FREEZE_EPOCHS} epoch)")
     model = GraphoVisionResNet(num_labels=5, dropout=DROPOUT, freeze_backbone=True).to(DEVICE)
 
-    alpha     = compute_alpha(train_loader, DEVICE)
-    criterion = FocalLoss(alpha=alpha, gamma=2.0)
+    alpha, gamma = compute_alpha_gamma(train_loader, DEVICE)
+    criterion    = FocalLoss(alpha=alpha, gamma=gamma)
 
     optimizer = Adam(
         filter(lambda p: p.requires_grad, model.parameters()),
