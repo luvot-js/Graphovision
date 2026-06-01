@@ -5,7 +5,7 @@
  * JWT 토큰은 localStorage에서 자동으로 읽어 Authorization 헤더에 첨부
  */
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 function getToken(): string | null {
   return localStorage.getItem("gv_token");

@@ -6,6 +6,7 @@ xml/
 __pycache__/
 *.pyc
 *.pth
+!best_model.pth
 history.json
 graphovision_results.zip
 feature_cache.pkl
@@ -16,3 +17,6 @@ MODEL_GUIDE.md
 png/
 LABEL_DECISION.md
 data/
+.env
+backend/.env
+GraphoVision_UI/.env.local

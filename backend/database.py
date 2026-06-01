@@ -1,9 +1,12 @@
 """
 database.py
 -----------
-SQLite 연결 및 테이블 생성
+SQLite (로컬) / PostgreSQL (배포) 자동 선택
+  - 로컬: DATABASE_URL 없음 → SQLite (data/graphovision.db)
+  - 배포: DATABASE_URL 환경변수 → PostgreSQL (Railway 제공)
 """
 
+import os
 from pathlib import Path
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
@@ -12,9 +15,16 @@ from datetime import datetime, timezone
 DATA_DIR = Path(__file__).parent.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
-DATABASE_URL = f"sqlite:///{DATA_DIR / 'graphovision.db'}"
-
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+_db_url = os.environ.get("DATABASE_URL")
+if _db_url:
+    # Railway는 'postgres://' 형식으로 제공 → SQLAlchemy는 'postgresql://' 필요
+    if _db_url.startswith("postgres://"):
+        _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+    DATABASE_URL = _db_url
+    engine = create_engine(DATABASE_URL)
+else:
+    DATABASE_URL = f"sqlite:///{DATA_DIR / 'graphovision.db'}"
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

@@ -56,11 +56,16 @@ async def analyze(
     # 리포트 생성
     report_text = generate_report(scores)
 
-    # 이미지 저장
-    result_id  = str(uuid.uuid4())
-    image_path = str(UPLOAD_DIR / f"{result_id}.jpg")
-    with open(image_path, "wb") as f:
-        f.write(image_bytes)
+    # 이미지 저장 (로컬 전용 — 배포 환경에서는 파일시스템이 없으므로 스킵)
+    result_id = str(uuid.uuid4())
+    image_path = ""
+    try:
+        img_file_path = str(UPLOAD_DIR / f"{result_id}.jpg")
+        with open(img_file_path, "wb") as f:
+            f.write(image_bytes)
+        image_path = img_file_path
+    except Exception:
+        pass
 
     # DB 저장
     db_result = Result(
