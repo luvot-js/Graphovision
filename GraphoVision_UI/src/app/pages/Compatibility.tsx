@@ -7,7 +7,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } fro
 import { Share2, RefreshCw, CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
 
-const TRAITS = ['정서 안정성', '정신력/의지력', '겸손', '개인적 조화', '사회적 고립'];
+const TRAITS = ['정서 안정성', '정신력/의지력', '겸손', '유연성', '독립성'];
 
 const MOCK_ANALYSES = [
   { id: "1", name: "지훈", date: "2026.05.23", scores: [82, 64, 71, 89, 78] },
@@ -183,7 +183,7 @@ export function Compatibility() {
               <Card className="border-l-4 border-l-amber bg-white/80 p-5">
                 <div className="mb-2 text-[13px] font-bold text-amber">주의 포인트</div>
                 <p className="text-[15px] leading-relaxed text-charcoal">
-                  ⚠️ 개인적 조화 차이가 커서 오해가 생길 수 있어요
+                  ⚠️ 유연성 차이가 커서 오해가 생길 수 있어요
                 </p>
               </Card>
             </div>

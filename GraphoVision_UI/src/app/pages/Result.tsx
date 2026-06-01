@@ -8,7 +8,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } fro
 import { motion } from "motion/react";
 import { analyzeApi } from "../../lib/api";
 
-const TRAITS = ['정서 안정성', '정신력/의지력', '겸손', '개인적 조화', '사회적 고립'];
+const TRAITS = ['정서 안정성', '정신력/의지력', '겸손', '유연성', '독립성'];
 
 function getColorForScore(score: number) {
   if (score < 0.3) return "bg-radar-b";

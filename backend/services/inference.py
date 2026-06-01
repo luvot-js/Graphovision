@@ -51,8 +51,8 @@ TRAIT_NAMES_KR = [
     "정서 안정성",
     "정신력/의지력",
     "겸손",
-    "개인적 조화",
-    "사회적 고립",
+    "유연성",
+    "독립성",
 ]
 
 # evaluate.py optimal threshold sweep 결과

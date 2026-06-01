@@ -8,7 +8,7 @@ import { Radar, RadarChart, PolarGrid, ResponsiveContainer } from "recharts";
 import { userApi, historyApi } from "../../lib/api";
 import { removeToken } from "../../lib/auth";
 
-const TRAITS = ['정서 안정성', '정신력/의지력', '겸손', '개인적 조화', '사회적 고립'];
+const TRAITS = ['정서 안정성', '정신력/의지력', '겸손', '유연성', '독립성'];
 
 function MiniRadar({ scores }: { scores: number[] }) {
   const data = scores.map((v, i) => ({ subject: `p${i}`, v: Math.round(v * 100) }));
