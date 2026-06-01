@@ -5,7 +5,7 @@ import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { BottomNav } from "../components/ui/BottomNav";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
-import { RefreshCw, CheckCircle2, Plus } from "lucide-react";
+import { RefreshCw, CheckCircle2, Plus, Link as LinkIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { historyApi, compatibilityApi } from "../../lib/api";
 
@@ -45,6 +45,7 @@ export function Compatibility() {
   const [result, setResult] = useState<CompatibilityResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     historyApi.list()
@@ -283,10 +284,27 @@ export function Compatibility() {
             )}
 
             <div className="flex flex-col gap-3 pt-4">
+              <Button
+                fullWidth
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href).then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  });
+                }}
+              >
+                <LinkIcon size={18} className="mr-2" /> 결과 링크 복사
+              </Button>
               <Button variant="secondary" fullWidth onClick={handleReset}>
                 <RefreshCw size={18} className="mr-2" /> 다시 비교하기
               </Button>
             </div>
+
+            {copied && (
+              <div className="fixed bottom-28 left-1/2 -translate-x-1/2 rounded-full bg-charcoal px-5 py-2.5 text-[13px] text-white shadow-lg">
+                링크가 복사됐어요!
+              </div>
+            )}
           </>
         )}
       </div>

@@ -24,6 +24,7 @@ export function Result() {
   const [reportText, setReportText] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -144,12 +145,23 @@ export function Result() {
         <div className="flex justify-center gap-3">
           <button
             className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-charcoal shadow-sm transition hover:bg-gray-50"
-            onClick={() => navigator.clipboard.writeText(window.location.href)}
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              });
+            }}
             title="링크 복사"
           >
             <LinkIcon size={20} />
           </button>
         </div>
+
+        {copied && (
+          <div className="fixed bottom-28 left-1/2 -translate-x-1/2 rounded-full bg-charcoal px-5 py-2.5 text-[13px] text-white shadow-lg">
+            링크가 복사됐어요!
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 pt-4">
           <Button variant="secondary" fullWidth onClick={() => navigate("/test")}>
