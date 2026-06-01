@@ -317,25 +317,8 @@ def main():
     # ④ 5개 지표별 Accuracy / F1
     print_per_label_metrics(model, test_loader)
 
-    # ⑤ 레이더 차트 — 단일 샘플 예시
-    model.eval()
-    # [수정됨] 하이브리드 모델이므로 imgs, feats, labels 3개를 받습니다.
-    imgs, feats, labels = next(iter(test_loader))
-    with torch.no_grad():
-        probs = torch.sigmoid(model(imgs.to(DEVICE), feats.to(DEVICE))).cpu().numpy()
-
-    plot_radar_chart(
-        ground_truth=labels[0].numpy(),
-        predicted=probs[0],
-        title=f"GraphoVision — Sample Prediction",
-    )
-
-    # ⑥ 레이더 차트 — 4개 샘플 배치 (PPT 핵심 자료)
-    plot_radar_batch(model, test_loader, n_samples=4)
-
     print("\n평가 완료! 생성된 파일:")
-    for f in ["training_curves.png", "per_label_metrics.png",
-              "radar_chart_sample.png", "radar_chart_batch.png"]:
+    for f in ["training_curves.png", "per_label_metrics.png"]:
         path = BASE / f
         status = "✓" if path.exists() else "✗"
         print(f"  {status} {f}")
