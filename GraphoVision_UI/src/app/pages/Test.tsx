@@ -73,6 +73,9 @@ export function Test() {
 
         {!preview ? (
           <div className="space-y-4">
+            <p className="text-[13px] text-warm-brown italic text-center">
+              "그대만큼 사랑스러운 사람을 본 일이 없다"
+            </p>
             <div
               className={`flex h-48 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-colors ${
                 isDragging ? "border-indigo bg-indigo/5" : "border-warm-gray bg-white"
