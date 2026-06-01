@@ -77,6 +77,7 @@ class CompatibilityResponse(BaseModel):
     scores_a: list[float]
     scores_b: list[float]
     trait_names: list[str]
+    report: Optional[str] = None
 
 
 # ── Billing ───────────────────────────────────────────────────────────

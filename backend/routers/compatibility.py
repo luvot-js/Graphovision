@@ -13,6 +13,7 @@ from database import get_db, User, Result
 from models.schemas import CompatibilityRequest, CompatibilityResponse
 from routers.user import get_current_user
 from services.inference import TRAIT_NAMES_KR
+from services.compatibility_report import generate_compatibility_report
 
 router = APIRouter(prefix="/api", tags=["compatibility"])
 
@@ -50,6 +51,8 @@ def compatibility(
         if diffs[i] >= 0.4
     ]
 
+    report = generate_compatibility_report(scores_a, scores_b)
+
     return CompatibilityResponse(
         harmony_score=harmony_score,
         synergy_traits=synergy_traits,
@@ -57,4 +60,5 @@ def compatibility(
         scores_a=scores_a,
         scores_b=scores_b,
         trait_names=TRAIT_NAMES_KR,
+        report=report,
     )

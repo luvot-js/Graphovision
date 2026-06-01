@@ -24,6 +24,7 @@ type CompatibilityResult = {
   caution_traits: string[];
   scores_a: number[];
   scores_b: number[];
+  report?: string;
 };
 
 function getNameFromStorage(id: string): string {
@@ -269,6 +270,17 @@ export function Compatibility() {
                 </Card>
               )}
             </div>
+
+            {result.report && (
+              <div>
+                <h3 className="mb-4 text-[18px] font-semibold text-charcoal">AI 궁합 리포트</h3>
+                <Card className="bg-white/80 p-5">
+                  <p className="text-[15px] leading-relaxed text-charcoal whitespace-pre-line">
+                    {result.report}
+                  </p>
+                </Card>
+              </div>
+            )}
 
             <div className="flex flex-col gap-3 pt-4">
               <Button variant="secondary" fullWidth onClick={handleReset}>
