@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Camera, Paperclip, X, Plus, CheckCircle2 } from "lucide-react";
+import { Camera, Paperclip, X } from "lucide-react";
 import { TopNav } from "../components/ui/TopNav";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { BottomNav } from "../components/ui/BottomNav";
 import { motion, AnimatePresence } from "motion/react";
-import { analyzeApi, historyApi, userApi } from "../../lib/api";
+import { analyzeApi, userApi } from "../../lib/api";
 
 export function Test() {
   const navigate = useNavigate();
@@ -17,6 +17,7 @@ export function Test() {
   const [isDragging, setIsDragging] = useState(false);
   const [credits, setCredits] = useState<number>(0);
   const [error, setError] = useState("");
+  const [personName, setPersonName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -50,6 +51,9 @@ export function Test() {
     try {
       const res = await analyzeApi.analyze(file);
       setCredits(res.credits_remaining);
+      // 이름 저장 (궁합 분석에서 활용)
+      const name = personName.trim() || "나";
+      localStorage.setItem(`gv_name_${res.result_id}`, name);
       navigate(`/result/${res.result_id}`);
     } catch (err: any) {
       setStep("upload");
@@ -76,6 +80,18 @@ export function Test() {
             <p className="text-[13px] text-warm-brown italic text-center">
               "그대만큼 사랑스러운 사람을 본 일이 없다"
             </p>
+
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-charcoal">
+                누구의 필체인가요?
+              </label>
+              <Input
+                placeholder="이름을 입력하세요 (예: 나, 친구 이름)"
+                value={personName}
+                onChange={(e) => setPersonName(e.target.value)}
+              />
+            </div>
+
             <div
               className={`flex h-48 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-colors ${
                 isDragging ? "border-indigo bg-indigo/5" : "border-warm-gray bg-white"
@@ -123,6 +139,12 @@ export function Test() {
                 <X size={18} />
               </button>
             </div>
+
+            {personName.trim() && (
+              <p className="text-center text-[14px] text-warm-brown">
+                <span className="font-semibold text-charcoal">{personName}</span>의 필체를 분석합니다
+              </p>
+            )}
 
             {error && <p className="text-[13px] text-red-500">{error}</p>}
 
